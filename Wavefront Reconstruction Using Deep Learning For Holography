@@ -1,0 +1,46 @@
+Wavefront Reconstruction using Deep Learning for Digital Holography
+
+Import Libraries
+
+import os import numpy as np import matplotlib.pyplot as plt from tensorflow.keras.preprocessing.image import load_img, img_to_array from tensorflow.keras.models import Model from tensorflow.keras.layers import Input, Conv2D, Conv2DTranspose from tensorflow.keras.utils import plot_model
+
+Data Paths
+
+X_train_path = "../input/synthetic-holograms64x64x1/X_train_HOLO/Labels/" y_train_path = "../input/synthetic-holograms64x64x1/y_train_obj/objects/"
+
+X_train_list = sorted(os.listdir(X_train_path)) y_train_list = sorted(os.listdir(y_train_path))
+
+Load Images into Arrays
+
+X_train = [] y_train = [] for a, b in zip(X_train_list, y_train_list): imx = img_to_array(load_img(os.path.join(X_train_path, a), color_mode='grayscale')) imy = img_to_array(load_img(os.path.join(y_train_path, b), color_mode='grayscale')) X_train.append(imx) y_train.append(imy)
+
+X_train = np.array(X_train) y_train = np.array(y_train)
+
+Normalize Data
+
+X_train = X_train / 255. y_train = y_train / 255.
+
+Display Samples
+
+fig, axes = plt.subplots(2, 4, figsize=(10, 5)) for i, ax in enumerate(axes.flatten()): ax.imshow(X_train[i*100].reshape(64,64), cmap='gray') ax.axis('off') plt.suptitle("Sample Holograms") plt.tight_layout() plt.show()
+
+Model Definition
+
+input_shape = (64, 64, 1) inp = Input(shape=input_shape) x = Conv2D(20, kernel_size=3, strides=2, activation='relu', padding='same')(inp) x = Conv2DTranspose(1, kernel_size=3, strides=2, activation='sigmoid', padding='same')(x) model = Model(inp, x)
+
+Compile Model
+
+model.compile(optimizer='adam', loss='mse', metrics=['mse']) model.summary()
+
+Train Model
+
+model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.1)
+
+Predict on Test Data (reuse train for demonstration)
+
+pred = model.predict(X_train[:16])
+
+Display Predictions
+
+fig, axes = plt.subplots(3, 16, figsize=(16, 3)) for i in range(16): axes[0, i].imshow(X_train[i].reshape(64, 64), cmap='gray') axes[0, i].axis('off') axes[1, i].imshow(y_train[i].reshape(64, 64), cmap='gray') axes[1, i].axis('off') axes[2, i].imshow(pred[i].reshape(64, 64), cmap='gray') axes[2, i].axis('off') plt.suptitle("Top: Input Hologram | Middle: Ground Truth | Bottom: Prediction") plt.tight_layout() plt.show()
+
